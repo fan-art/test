@@ -1,0 +1,151 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualMachines_01D6BEF_D624B6D_name": {
+            "defaultValue": "LisaTest",
+            "type": "String"
+        },
+        "disks_01D6BEF_D624B6D_OsDisk_1_3dda09ad15a6454885e90b44dd379afe_externalid": {
+            "defaultValue": "/subscriptions/618f7b25-b146-4c0e-a21b-2f1c67e78648/resourceGroups/STORAGE_36c02ac3-65b7-477c-959e-661f8173f91d/providers/Microsoft.Compute/disks/01D6BEF-D624B6D_OsDisk_1_3dda09ad15a6454885e90b44dd379afe",
+            "type": "String"
+        },
+        "networkInterfaces_nic_01D6BEF_D624B6D_externalid": {
+            "defaultValue": "/subscriptions/de150729-4b3d-4f4a-88dd-a520be393350/resourceGroups/RunnerRG/providers/Microsoft.Network/networkInterfaces/nic-01D6BEF-D624B6D",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "name": "[parameters('virtualMachines_01D6BEF_D624B6D_name')]",
+            "location": "westus2",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "/subscriptions/48bc98ba-8412-4c72-a764-1f08289cc202/resourceGroups/cpc-rg-cnry-beta-westus/providers/Microsoft.ManagedIdentity/userAssignedIdentities/cpc-uam-cnry-cnryuai-Beta-westus": {
+                        "principalId": "9e1e1bf7-2533-40ae-99ad-3df5d669eae0",
+                        "clientId": "b99d6fb2-2b2e-47cc-b86c-4885aa81ba34"
+                    }
+                }
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_D2s_v3"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsDesktop",
+                        "offer": "Windows-10",
+                        "sku": "rs5-pro",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "name": "[concat(parameters('virtualMachines_01D6BEF_D624B6D_name'), '_OsDisk_1_3dda09ad15a6454885e90b44dd379afe')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS",
+                            "id": "[parameters('disks_01D6BEF_D624B6D_OsDisk_1_3dda09ad15a6454885e90b44dd379afe_externalid')]"
+                        },
+                        "diskSizeGB": 127
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachines_01D6BEF_D624B6D_name')]",
+                    "adminUsername": "canary",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true,
+                    "requireGuestProvisionSignal": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[parameters('networkInterfaces_nic_01D6BEF_D624B6D_externalid')]"
+                        }
+                    ]
+                }
+            },
+        
+        "resources": [
+                {
+                 "name": "[concat(parameters('virtualMachines_01D6BEF_D624B6D_name'), '/Microsoft.Azure.Geneva.GenevaMonitoring')]",
+                 "type": "extensions",
+                 "location": "[resourceGroup().location]",
+                 "apiVersion": "2019-03-01",
+                 "properties": {
+                   "publisher": "Microsoft.Azure.Geneva",
+                    "type": "GenevaMonitoring",
+                   "typeHandlerVersion": "2.16",
+                    "autoUpgradeMinorVersion": true,
+                    "settings": {},
+                    "protectedSettings": {}
+                 }
+                }
+             ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2019-07-01",
+            "name": "[concat(parameters('virtualMachines_01D6BEF_D624B6D_name'), '/canarytest')]",
+            "location": "westus2",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_01D6BEF_D624B6D_name'))]"
+            ],
+            "properties": {
+                "autoUpgradeMinorVersion": true,
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.80",
+                "settings": {
+                    "modulesUrl": "https://cpcsacnrysa1betawestus.blob.core.windows.net/cmd-static-content/cnry/1.4.2/dscconfiguration.zip?sv=2018-03-28&sr=b&sig=bE%2FFicaSmmk2hQSzxu1PoI9uOX6yYWpjOXP3pxfnUm4%3D&se=2020-12-27T18%3A28%3A16Z&sp=r",
+                    "configurationFunction": "DSCConfiguration.ps1\\Configuration",
+                    "Properties": {
+                        "ActivityId": "08ee6f16-f715-43ad-ab99-678c4dda9f4a",
+                        "domainToJoin": "cpcbeta001.onmicrosoft.com",
+                        "AdminCreds": {
+                            "UserName": "connie",
+                            "Password": "PrivateSettingsRef:AdminPassword"
+                        },
+                        "CheckId": "6f64fe79-34f8-4527-b111-89c8e62a0296",
+                        "TenantId": "38cbc383-2e8f-4ef7-b2ed-d84b311542db",
+                        "CheckServiceId": "af77dcc5-baff-4d2b-812c-d6752414484d",
+                        "EncryptedTenantIdWithConnId": "WXJHl/hAYgBIpQ7jVHtDMOaNxYG17ID94lZXCv/Yhidr33LIHQ4iqRe15rWVRug0KWTE0YaVdv7d2rVR/yOOqlLZrgXsf9jt50cbEPR8/uWK3nEVscy0Llps4I6eON/gaHaYf65j5wZ8R0yC/HW27cmTovJCT+YvAKJmluFb8Zl3a0AiIEv/UepCcxLsxSQm8p+WUllx4KVSOBobUoQLwuysiZDYaS8g/9h5nhVBexRWpdPWOTAmZlV9JsEnU4bKQjzPsgF6J0ZU38z/t8v+NdNWmpfWNVjHZ5ZOd2hdDGzDs8DD6Ar7sgwDZk1PXrD1jNDEVB9agdyRYk8R7GiGlimhdT6uqt1+ABi+OQxLbRaAsYeov7snzcYc3Cij1SKMTx0VAXxkAgMHBX3YFDU76W2R6erw19Ahez5Ee0GT20zRDz1bHiXLXXY6nDjOLgb8+z5ANraEcCT8XOxEd7TT3teht1aX5FLtchWXCLPSjiaVCJ4ir+WRsPRxi1Bl16fvhBpNYqRRit7tZ5XvlvH6YAEMLCSmVBXcn9rqMF4db/l+0mgr5Qs4QPu7yD8HzZwuPNxFMif4sv+sUyrv9KWKBS2ZqK5wXyTpk6rJbJqmV+IGNYQt0Txn9IQcTd5o921fINYj/sD2usWU+a4AhbonWsQ1zoo/uKxCX8kk/ekT1Lc=",
+                        "OrganizationalUnit": "OU=Domain Controllers,DC=cpcbeta001,DC=onmicrosoft,DC=com",
+                        "SASUri": {
+                            "UserName": "NO",
+                            "Password": "PrivateSettingsRef:SASToken"
+                        },
+                        "ValidationDetailEndpoint": "https://cpc-web-cnry-beta-westus.azurewebsites.net/api/cnry/ValidationStatusDetails",
+                        "ExAuthResourceId": "07be9291-1e65-4846-9cba-2a831dc3f40a"
+                    }
+                },
+                "protectedSettings": {}
+            }
+        },
+            {
+                "name": "[concat(parameters('virtualMachines_01D6BEF_D624B6D_name'), '/Microsoft.Azure.Geneva.GenevaMonitoring')]",
+                 "type": "Microsoft.Compute/virtualMachines/extensions",
+                 "location": "[resourceGroup().location]",
+                "apiVersion": "2019-03-01",
+                 "properties": {
+                    "publisher": "Microsoft.Azure.Geneva",
+                    "type": "GenevaMonitoring",
+                     "typeHandlerVersion": "2.16",
+                   "autoUpgradeMinorVersion": true,
+                    "settings": {},
+                     "protectedSettings": {}
+                }
+            }
+        
+       
+    ]
+}
